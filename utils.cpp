@@ -14,6 +14,19 @@ float clamp(float val, float low, float high)
   return val;
 }
 
+int calculateMotorDriveActual(float p, float i, float d)
+{
+  float raw = clamp(p + i + d, MIN_PWM, MAX_PWM);
+  if (raw > 0)
+  {
+    return (int)clamp(pwm, DEADBAND, MAX_PWM)
+  }
+  else
+  {
+    return -(int)clamp(-pwm, DEADBAND, MAX_PWM)
+  }
+}
+
 // Below here are some helper functions to print the data nicely!
 
 void printPaddedInt16b(int16_t val)
