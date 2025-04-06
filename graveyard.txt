@@ -1,0 +1,178 @@
+case GET_IMU_DATA:
+  {
+    float gyr_pitch = 0, gyr_roll = 0, gyr_yaw = 0, dt = 0;
+    float complementary_pitch = 0, complementary_roll = 0;
+    gyr_last = micros();
+
+    for (int i = 0; i < array_size; i++)
+    {
+      if (myICM.dataReady())
+      {
+        myICM.getAGMT();
+        float theta = atan2((&myICM)->accX(), (&myICM)->accZ()) * (180.0 / M_PI);
+        float phi = atan2((&myICM)->accY(), (&myICM)->accZ()) * (180.0 / M_PI);
+        acc_pitch_array[i] = theta;
+        acc_roll_array[i] = phi;
+        acc_pitch_array_lowpass[i] = lowPassPitch(theta);
+        acc_roll_array_lowpass[i] = lowPassRoll(phi);
+        timestamp_array[i] = (int)millis();
+
+        dt = (micros() - gyr_last) / 1000000.;
+        gyr_last = micros();
+        gyr_pitch = gyr_pitch - myICM.gyrY() * dt; // negate gyro reading according to sign conv. defined on IMU
+        gyr_roll = gyr_roll + myICM.gyrX() * dt;
+        gyr_yaw = gyr_yaw + myICM.gyrZ() * dt;
+        gyr_roll_array[i] = gyr_roll;
+        gyr_pitch_array[i] = gyr_pitch;
+        gyr_yaw_array[i] = gyr_yaw;
+
+        complementary_pitch = (complementary_pitch - myICM.gyrY() * dt) * (1 - alpha_complementary) + theta * alpha_complementary; // also negate gyro
+        complementary_roll = (complementary_roll + myICM.gyrX() * dt) * (1 - alpha_complementary) + phi * alpha_complementary;
+
+        complementary_pitch_array[i] = complementary_pitch;
+        complementary_roll_array[i] = complementary_roll;
+      }
+    }
+
+    // Return data as "T:{}|accP:{}|accPlp:{}|accR:{}|accRlp:{}|gyrP:{}|gyrR:{}|gyrY:{}|compP:{}|compR:{}"
+    for (int j = 0; j < array_size; j++)
+    {
+      send_all_data(j);
+    }
+    break;
+  }
+  case WRITE_IMU_DATA:
+  {
+    write_flag = true;
+    if (write_ind == array_size - 1)
+    {
+      write_ind = 0;
+    }
+    break;
+  }
+  case SEND_IMU_DATA:
+  {
+    for (int j = 0; j < array_size; j++)
+    {
+      send_all_data(j);
+    }
+    break;
+  }
+  case GET_TOF_DATA:
+  {
+    distanceSensor2.setDistanceModeShort();
+    for (int i = 0; i < array_size; i++)
+    {
+
+      distanceSensor2.startRanging(); // Write config bytes
+
+      while (!distanceSensor2.checkForDataReady())
+      {
+        delay(1); // dubious
+      }
+
+      distance1_array[i] = distanceSensor2.getDistance();
+      Serial.println(distance1_array[i]);
+      distanceSensor2.clearInterrupt();
+      distanceSensor2.stopRanging();
+
+      timestamp_array[i] = millis();
+    }
+
+    for (int j = 0; j < array_size; j++)
+    {
+      tx_estring_value.clear();
+      tx_estring_value.append("T:");
+      tx_estring_value.append(timestamp_array[j]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("D:");
+      tx_estring_value.append(distance1_array[j]);
+      tx_characteristic_string.writeValue(tx_estring_value.c_str());
+    }
+
+    break;
+  }
+  case GET_SENSOR_DATA:
+  {
+    // Serial.println("sensordata start ");
+    float complementary_pitch = 0, complementary_roll = 0;
+    gyr_yaw = 0, dt = 0;
+    gyr_last = micros();
+    distanceSensor1.setDistanceModeShort();
+    distanceSensor2.setDistanceModeShort();
+    for (int i = 0; i < array_size; i++)
+    {
+
+      distanceSensor1.startRanging(); // Write config bytes
+      distanceSensor2.startRanging(); // Write config bytes
+
+      while (!distanceSensor1.checkForDataReady())
+      {
+        delay(1); // dubious
+      }
+      while (!distanceSensor2.checkForDataReady())
+      {
+        delay(1);
+      }
+      distance1_array[i] = distanceSensor1.getDistance();
+      distanceSensor1.clearInterrupt();
+      distanceSensor1.stopRanging();
+
+      distance2_array[i] = distanceSensor2.getDistance();
+      distanceSensor2.clearInterrupt();
+      distanceSensor2.stopRanging();
+
+      // Serial.print("dist1:");
+      // Serial.println(distance1_array[i]);
+      // Serial.print("dist2:");
+      // Serial.println(distance2_array[i]);
+
+      if (myICM.dataReady())
+      {
+        myICM.getAGMT();
+        float theta = atan2((&myICM)->accX(), (&myICM)->accZ()) * (180.0 / M_PI);
+        float phi = atan2((&myICM)->accY(), (&myICM)->accZ()) * (180.0 / M_PI);
+        dt = (micros() - gyr_last) / 1000000.;
+        gyr_last = micros();
+        gyr_yaw = gyr_yaw + myICM.gyrZ() * dt;
+
+        complementary_pitch = (complementary_pitch - myICM.gyrY() * dt) * (1 - alpha_complementary) + theta * alpha_complementary; // also negate gyro
+        complementary_roll = (complementary_roll + myICM.gyrX() * dt) * (1 - alpha_complementary) + phi * alpha_complementary;
+
+        complementary_roll_array[i] = complementary_roll;
+        complementary_pitch_array[i] = complementary_pitch;
+        gyr_yaw_array[i] = gyr_yaw;
+
+        // Serial.print("pitch:");
+        // Serial.println(complementary_pitch_array[i]);
+      }
+      timestamp_array[i] = (int)millis();
+      // Serial.print("time: ");
+      // Serial.println(timestamp_array[i]);
+    }
+
+    for (int j = 0; j < array_size; j++)
+    {
+      tx_estring_value.clear();
+      tx_estring_value.append("T:");
+      tx_estring_value.append(timestamp_array[j]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("D1:");
+      tx_estring_value.append(distance1_array[j]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("D2:");
+      tx_estring_value.append(distance2_array[j]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("Roll:");
+      tx_estring_value.append(complementary_roll_array[j]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("Pitch:");
+      tx_estring_value.append(complementary_pitch_array[j]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("Yaw:");
+      tx_estring_value.append(gyr_yaw_array[j]);
+      tx_characteristic_string.writeValue(tx_estring_value.c_str());
+    }
+
+    break;
+  }

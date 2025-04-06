@@ -1,3 +1,4 @@
 #include "config.hpp"
 
-const int array_size = 250;
+
+int timestamp_array[array_size];

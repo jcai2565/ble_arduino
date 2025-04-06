@@ -16,23 +16,46 @@
 // On the SparkFun 9DoF IMU breakout the default is 1, and when the ADR jumper is closed the value becomes 0
 #define AD0_VAL 1
 
-#define DO_LOWPASS true //FLAG for doing low pass
-
 /*
 8 Lab 3: TOF
 */
+
+//MY XSHUT
 #define XSHUT 8 
-#define ALT_I2C 0x32 //arbitrary within range 0x08 to 0x77; must be 7-bit valid
+
+// //SOPHIA's XSHUT
+// #define XSHUT 2
+
+#define ALT_I2C 0x30 //arbitrary within range 0x08 to 0x77; must be 7-bit valid
 
 /*
 * Lab 4: Motors
 */
+//MY MOTORS
 //Left
 #define M1_IN1 5
 #define M1_IN2 2
 
 //Right
-#define M2_IN1 15
-#define M2_IN2 12
+#define M2_IN1 12
+#define M2_IN2 15
+
+// // SOPHIA'S MOTORS
+// #define M1_IN1 1
+// #define M1_IN2 15
+
+// //Right
+// #define M2_IN1 16
+// #define M2_IN2 5
+
+
+// //ADRIENNE'S MOTORS
+// //Left
+// #define M1_IN1 0
+// #define M1_IN2 1
+
+// //Right
+// #define M2_IN1 4
+// #define M2_IN2 3
 
 #endif //PINS_H

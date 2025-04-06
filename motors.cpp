@@ -1,8 +1,9 @@
 #include "motors.hpp"
+#include "utils.hpp"
 
 // Motor strength percentage (Must be <1)
-float left_percent = 1;
-float right_percent = 0.9;
+float left_percent = 1.0;
+float right_percent = 0.95;
 
 void motorSetup()
 {
@@ -14,6 +15,7 @@ void motorSetup()
 
 void spin(Side side, int pwm)
 {
+  // ccw
   if (side == LEFT)
   {
     analogWrite(M1_IN1, 0);
@@ -48,12 +50,26 @@ void drive(Direction dir, int pwm)
   }
 }
 
+void brake()
+{
+  analogWrite(M1_IN1, 255);
+  analogWrite(M1_IN2, 255);
+  analogWrite(M2_IN1, 255);
+  analogWrite(M2_IN2, 255);
+}
+
 void stop()
 {
   analogWrite(M1_IN1, 0);
   analogWrite(M1_IN2, 0);
   analogWrite(M2_IN1, 0);
   analogWrite(M2_IN2, 0);
+}
+
+void breakFor(int ms){
+  brake();
+  delay(ms);
+  stop();
 }
 
 void cyclePwmTest()
@@ -102,7 +118,40 @@ void motorOpenLoop()
   delay(5000);
 }
 
-void driveFromPID(float pid_out)
+void executePosPid(int pwm)
 {
+  Serial.print("Executing drive: ");
+  Serial.println(pwm);
+  // Because we never get to an absolute zero.
+  if (abs(pwm) < 3)
+  {
+    stop();
+  }
 
+  if (pwm > 0)
+  {
+    Serial.print("FWD: ");
+    Serial.println((int)clamp(pwm + DEADBAND, MIN_PWM, MAX_PWM));
+    drive(FORWARD, (int)clamp(pwm + DEADBAND, MIN_PWM, MAX_PWM));
+  }
+  else //pwm < 0, so need to negate
+  {
+    Serial.print("BWD: ");
+    Serial.println(-((int)clamp(pwm - DEADBAND, MIN_PWM, MAX_PWM)));
+    drive(BACKWARD, -((int)clamp(pwm - DEADBAND, MIN_PWM, MAX_PWM)));
+  }
+}
+
+void executeAnglePid(int pwm)
+{
+  if (pwm > 0)
+  {
+    pwm += DEADBAND;
+    spin(RIGHT, (int)clamp(pwm, MIN_PWM, MAX_PWM));
+  }
+  else //pwm < 0, so need to negate
+  {
+    pwm -= DEADBAND;
+    spin(LEFT, -((int)clamp(pwm, MIN_PWM, MAX_PWM)));
+  }
 }

@@ -1,4 +1,19 @@
 #include "utils.hpp"
+
+bool indexOutOfBounds(int index)
+{
+  return !(index >= 0 && index < array_size);
+}
+
+float clamp(float val, float low, float high)
+{
+  if (val > high)
+    return high;
+  if (val < low)
+    return low;
+  return val;
+}
+
 // Below here are some helper functions to print the data nicely!
 
 void printPaddedInt16b(int16_t val)
