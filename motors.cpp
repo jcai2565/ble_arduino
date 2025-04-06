@@ -66,7 +66,8 @@ void stop()
   analogWrite(M2_IN2, 0);
 }
 
-void breakFor(int ms){
+void breakFor(int ms)
+{
   brake();
   delay(ms);
   stop();
@@ -120,8 +121,6 @@ void motorOpenLoop()
 
 void executePosPid(int pwm)
 {
-  Serial.print("Executing drive: ");
-  Serial.println(pwm);
   // Because we never get to an absolute zero.
   if (abs(pwm) < 3)
   {
@@ -130,15 +129,11 @@ void executePosPid(int pwm)
 
   if (pwm > 0)
   {
-    Serial.print("FWD: ");
-    Serial.println((int)clamp(pwm + DEADBAND, MIN_PWM, MAX_PWM));
-    drive(FORWARD, (int)clamp(pwm + DEADBAND, MIN_PWM, MAX_PWM));
+    drive(FORWARD, (int)clamp(pwm, DEADBAND, MAX_PWM));
   }
-  else //pwm < 0, so need to negate
+  else // pwm < 0, so need to negate
   {
-    Serial.print("BWD: ");
-    Serial.println(-((int)clamp(pwm - DEADBAND, MIN_PWM, MAX_PWM)));
-    drive(BACKWARD, -((int)clamp(pwm - DEADBAND, MIN_PWM, MAX_PWM)));
+    drive(BACKWARD, ((int)clamp(-pwm, DEADBAND, MAX_PWM)));
   }
 }
 
@@ -149,7 +144,7 @@ void executeAnglePid(int pwm)
     pwm += DEADBAND;
     spin(RIGHT, (int)clamp(pwm, MIN_PWM, MAX_PWM));
   }
-  else //pwm < 0, so need to negate
+  else // pwm < 0, so need to negate
   {
     pwm -= DEADBAND;
     spin(LEFT, -((int)clamp(pwm, MIN_PWM, MAX_PWM)));
