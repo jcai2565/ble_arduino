@@ -44,7 +44,7 @@ bool doOpenLoop = false;
 unsigned long openLoopStartTime;
 int openLoopIndex = 0;
 
-// KalmanFilter pos_kf(dt, mass, dist, sigma_meas, sigma_proc_1, sigma_proc_2);
+//KalmanFilter pos_kf(dt, mass, dist, sigma_meas, sigma_proc_1, sigma_proc_2);
 // sigma_proc = sqrt(20^2 * 10) = 63.24
 // in mm units
 KalmanFilter pos_kf(0.1, 0.000258, 0.000339, 20, 63.24, 63.24);

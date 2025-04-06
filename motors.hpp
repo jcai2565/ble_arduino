@@ -2,10 +2,7 @@
 #define MOTORS_HPP
 
 #include "pins.h"
-
-#define DEADBAND 35
-#define MAX_PWM 255.0
-#define MIN_PWM -255.0
+#include "config.hpp"
 
 enum Side
 {
