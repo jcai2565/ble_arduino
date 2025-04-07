@@ -37,6 +37,12 @@ KalmanFilter::KalmanFilter(float dt, float mass, float dist, float sigma_meas, f
   // Measurement noise
   float r = sigma_meas * sigma_meas;
   sig_z = {r};
+
+  // Clean measurement array
+  for (int i = 0; i < pid_array_size; i++)
+  {
+    position_array[i] = 0.0f;
+  }
 }
 
 void KalmanFilter::predict(float controlInput)
@@ -44,6 +50,21 @@ void KalmanFilter::predict(float controlInput)
   Matrix<1, 1> u = {controlInput};
   x = Ad * x + Bd * u;
   sigma = Ad * sigma * ~Ad + sig_u;
+
+  if (kf_index < pid_array_size)
+  {
+    position_array[kf_index] = x(0, 0); // log filtered position
+    Serial.print("KF Pos:");
+    Serial.print(x(0, 0));
+    Serial.print(" | ");
+    Serial.print("KF Velocity:");
+    Serial.println(x(1,0));
+    kf_index++;
+  }
+  else
+  {
+    Serial.println("KF array is full!");
+  }
 }
 
 void KalmanFilter::update(float measurement)
@@ -57,6 +78,23 @@ void KalmanFilter::update(float measurement)
 
   x = x + K * y;
   sigma = (I - K * C) * sigma;
+}
+
+void KalmanFilter::initialize(float firstMeasurement)
+{
+  x = {firstMeasurement, 0};
+  //I trust position to be initially accurate to TOF's 5mm +-
+  sigma = {25, 0, 0, 1};
+  kf_index = 0;
+  for (int i = 0; i < pid_array_size; i++)
+  {
+    position_array[i] = 0.0f;
+  }
+}
+
+float KalmanFilter::normalize(int pwm)
+{
+  return (float)pwm / 150.;
 }
 
 float KalmanFilter::getPosition() const

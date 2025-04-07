@@ -46,8 +46,9 @@ int openLoopIndex = 0;
 
 //KalmanFilter pos_kf(dt, mass, dist, sigma_meas, sigma_proc_1, sigma_proc_2);
 // sigma_proc = sqrt(20^2 * 10) = 63.24
+// sigma_proc = sqrt(10^2 * 10) = 31.62
 // in mm units
-KalmanFilter pos_kf(0.1, 0.000258, 0.000339, 20, 63.24, 63.24);
+KalmanFilter pos_kf(0.00856, 0.000258, 0.000339, 20, 63.24, 63.24);
 
 //////////// Global Variables ////////////
 
@@ -117,6 +118,14 @@ void handle_command()
   {
     pos_pid.do_pid = true;
     pos_pid.reset();
+
+    float d1 = getTof1IfReady();
+    while (d1 == -1.0){
+      delay(5);
+      Serial.println("START_POS_PID: WAITING FOR FIRST TOF DATA");
+      d1 = getTof1IfReady();
+    }
+    pos_kf.initialize(d1);
     break;
   }
   case STOP_POS_PID:
@@ -187,14 +196,13 @@ case SET_ANGLE_GAINS:
       tx_estring_value.append(pos_pid.meas_array[i]);
       tx_estring_value.append("|");
       tx_estring_value.append("Set:");
-      tx_estring_value.append(angle_pid.setpoint_array[i]);
+      tx_estring_value.append(pos_pid.setpoint_array[i]);
       tx_characteristic_string.writeValue(tx_estring_value.c_str());
     }
     break;
   }
   case SEND_POS_PID_CONTROL_DATA:
   {
-    //Sends all data from PID. Assumes that no other data was collected.
     for (int i=0; i<pid_array_size; i++){
       tx_estring_value.clear();
       tx_estring_value.append("T:");
@@ -208,13 +216,15 @@ case SET_ANGLE_GAINS:
       tx_estring_value.append("|");
       tx_estring_value.append("D:");
       tx_estring_value.append(pos_pid.d_array[i]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("KF:");
+      tx_estring_value.append(pos_kf.position_array[i]);
       tx_characteristic_string.writeValue(tx_estring_value.c_str());
     }
     break;
   }
   case SEND_IMU_DATA:
   {
-    //Sends all data from TOF and Control during that time. Assumes that no other data was collected.
     for (int i=0; i<array_size; i++){
       tx_estring_value.clear();
       tx_estring_value.append("T:");
@@ -428,7 +438,7 @@ void posPidControlLoop()
     return;
   }
 
-  if (millis() - pos_pid.pid_start_time > 5000)
+  if (millis() - pos_pid.pid_start_time > 8000)
   {
     pos_pid.do_pid = false;
   }
@@ -442,26 +452,30 @@ void posPidControlLoop()
   // TOF data is ready: record fresh data
   if (d1 != -1.0)
   {
+    pos_kf.update(d1); //update Kalman filter with new data value
+
     if (pos_pid.pid_index >= array_size) // Prevent array overflow
     {
       Serial.println("ARRAY FULL! Cannot write to array. Continuing PID control.");
     }
     else
     {
+      pwm = pos_pid.compute(pos_kf.getPosition()); // Get position according to KF
+
       pos_pid.time_array[pos_pid.pid_index] = millis();
       pos_pid.meas_array[pos_pid.pid_index] = d1;
-      pwm = pos_pid.compute(d1); 
       pos_pid.pwm_history[pos_pid.pid_index] = pwm;
       pos_pid.setpoint_array[pos_pid.pid_index] = pos_pid.setpoint;
       pos_pid.pid_index++;
     }
   }
-  else
+  else //no data from TOF
   {
-    pwm = pos_pid.pid_index == 0 ? 0 : pos_pid.compute(pos_pid.linearExtrapolate());
+    pwm = (pos_pid.pid_index == 0) ? 0 : pos_pid.compute(pos_kf.getPosition());
   }
 
-  executePosPid(pwm); // Bumps up by DEADBAND and clamps.
+  // Has a lower bound of DEADBAND. Also calls update to KF
+  executePosPid(pwm); 
   return;
 }
 

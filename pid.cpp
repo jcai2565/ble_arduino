@@ -5,7 +5,7 @@
 // Initialize two PID controllers
 // (float sp = 0.0, float kp = 0.0, float ki = 0.0, float kd = 0.0, float dt = 0.02, float alpha = 0.1)
 PIDController angle_pid(0.0, 0.0, 0.0, 0.0, 0.02, 0.01); // Default values, to be adjusted
-PIDController pos_pid(304.0, 0.0, 0.0, 0.0, 0.02, 0.5);  // Setpoint of 304mm
+PIDController pos_pid(304.0, 0.0, 0.0, 0.0, 0.02, 0.05); // Setpoint of 304mm
 
 int PIDController::compute(float pos)
 {
@@ -27,7 +27,9 @@ int PIDController::compute(float pos)
     // NOT the first iteration -- proceed as normal
     // Anti-derivative kick: replace dError/dt with -dInput/dt
     // Question: is this necessary after LPF?
-    raw_derivative = -(pos - prev_val) / pid_dt;
+
+    // If pos < prev_val, we are speeding towards the wall, which should contribute a minus PWM.
+    raw_derivative = (pos - prev_val) / pid_dt;
   }
   else
   {
@@ -47,19 +49,25 @@ int PIDController::compute(float pos)
   p_array[pid_control_index] = p;
   i_array[pid_control_index] = i;
   d_array[pid_control_index] = d;
-  // Serial.print("PID Control--- Pos: ");
-  // Serial.print(pos);
-  // Serial.print(" | Error: ");
-  // Serial.print(error);
-  // Serial.print(" | P: ");
-  // Serial.print(p);
-  // Serial.print(" | ");
-  // Serial.print("I: ");
-  // Serial.print(i);
-  // Serial.print(" | ");
-  // Serial.print("D: ");
-  // Serial.print(d);
-  // Serial.println("");
+  Serial.print("PID Control--- Pos: ");
+  Serial.print(pos);
+  Serial.print(" | Error: ");
+  Serial.print(error);
+  Serial.print(" | P: ");
+  Serial.print(p);
+  Serial.print(" | ");
+  Serial.print("I: ");
+  Serial.print(i);
+  Serial.print(" | ");
+  Serial.print("D: ");
+  Serial.print(d);
+  Serial.print(" | ");
+  Serial.print("dt:");
+  Serial.print(pid_dt);
+  Serial.print(" | ");
+  Serial.print("accum:");
+  Serial.print(accumulator);
+  Serial.println("");
   pid_control_index++;
 
   return (int)clamp(p + i + d, MIN_PWM, MAX_PWM);
@@ -107,7 +115,7 @@ void PIDController::reset()
 {
   pid_dt = 0.02; // s, default value
   accumulator = 0.0;
-  prev_val = -1.0; // Init as invalid TOF reading to discern first iter
+  prev_val = -1.000; // Init as invalid TOF reading to discern first iter
 
   pid_index = 0; // Sets return array index to 0
   pid_control_index = 0;

@@ -14,16 +14,17 @@ float clamp(float val, float low, float high)
   return val;
 }
 
+//unused, i think
 int calculateMotorDriveActual(float p, float i, float d)
 {
   float raw = clamp(p + i + d, MIN_PWM, MAX_PWM);
   if (raw > 0)
   {
-    return (int)clamp(pwm, DEADBAND, MAX_PWM)
+    return (int)clamp(p + i + d, DEADBAND, MAX_PWM);
   }
   else
   {
-    return -(int)clamp(-pwm, DEADBAND, MAX_PWM)
+    return -(int)clamp(-(p + i + d), DEADBAND, MAX_PWM);
   }
 }
 

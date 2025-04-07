@@ -1,9 +1,13 @@
 #include "motors.hpp"
 #include "utils.hpp"
+#include "kalman.hpp"
 
 // Motor strength percentage (Must be <1)
 float left_percent = 1.0;
-float right_percent = 0.95;
+float right_percent = 1.0;
+
+// Trust that pos_kf is declared elsewhere, in .ino file
+extern KalmanFilter pos_kf;
 
 void motorSetup()
 {
@@ -121,19 +125,36 @@ void motorOpenLoop()
 
 void executePosPid(int pwm)
 {
+
   // Because we never get to an absolute zero.
   if (abs(pwm) < 3)
   {
     stop();
   }
 
+  int input;
   if (pwm > 0)
   {
-    drive(FORWARD, (int)clamp(pwm, DEADBAND, MAX_PWM));
+    // cast pwm to float for more accurate fp division?
+    input = (int)clamp((float)pwm, DEADBAND, MAX_PWM);
+
+    // Predict step every control
+    // NOTE: a positive u suggests that distance is increasing, so we should negate u if it leads to decreasing dist.
+    pos_kf.predict(KalmanFilter::normalize(-input)); // Feed control signal to KF
+
+    drive(FORWARD, input);
   }
   else // pwm < 0, so need to negate
   {
-    drive(BACKWARD, ((int)clamp(-pwm, DEADBAND, MAX_PWM)));
+    // This should be a positive
+    input = (int)clamp(-pwm, DEADBAND, MAX_PWM);
+
+    // Need to negate back to negative
+    // NOTE: a positive u suggests that distance is increasing, so we should negate u if it leads to decreasing dist and vice versa
+    pos_kf.predict(KalmanFilter::normalize(input)); // Feed control signal to KF
+
+    // positive for motor input
+    drive(BACKWARD, input);
   }
 }
 

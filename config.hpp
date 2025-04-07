@@ -13,9 +13,11 @@
 #define alpha_complementary 0.1
 
 // Motor pwm variables
-#define DEADBAND 35
+#define DEADBAND 45
 #define MAX_PWM 255.0
 #define MIN_PWM -255.0
+
+#define max_integral 300.
 
 #define DO_DEBUG false
 
