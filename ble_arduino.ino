@@ -48,7 +48,13 @@ int openLoopIndex = 0;
 // sigma_proc = sqrt(20^2 * 10) = 63.24
 // sigma_proc = sqrt(10^2 * 10) = 31.62
 // in mm units
-KalmanFilter pos_kf(0.00856, 0.000258, 0.000339, 20, 63.24, 63.24);
+KalmanFilter pos_kf(0.00856, 0.000258, 0.000339, 20, 31.62, 31.62);
+// KalmanFilter pos_kf(0.00856, 0.000258, 0.000339, 20, 63.24, 63.24);
+
+//Lab 8 stunts
+int stunt_tof_index = 0;
+int stunt_kf_index = 0;
+unsigned long stunt_start_time;
 
 //////////// Global Variables ////////////
 
@@ -298,6 +304,56 @@ case SET_ANGLE_GAINS:
       tx_estring_value.append("|");
       tx_estring_value.append("P:");
       tx_estring_value.append(distance1_array[i]);
+      tx_characteristic_string.writeValue(tx_estring_value.c_str());
+    }
+    break;
+  }
+  case START_STUNT:
+  {
+    stunt_tof_index = 0;
+    stunt_kf_index = 0;
+    
+    //TOF and slower timestamp array
+    for (int i = 0; i < array_size; i++){
+      timestamp_array[i] = 0;
+      distance1_array[i] = 0;
+    }
+
+    //KF timestamp array
+    for (int i = 0; i < pid_array_size; i++){
+      big_timestamp_array[i] = 0;
+    }
+
+    // Initialize with first measurement
+    float d1 = getTof1IfReady();
+    while (d1 == -1.0){
+      delay(5);
+      Serial.println("START_STUNT: WAITING FOR FIRST TOF DATA");
+      d1 = getTof1IfReady();
+    }
+    pos_kf.initialize(d1);
+    
+    stunt_start_time = millis();
+    timestamp_array[stunt_tof_index] = stunt_start_time;
+    distance1_array[stunt_tof_index] = d1;
+    stunt_tof_index++;
+
+    // Call stunt function.
+    stuntOpenLoop();
+
+    // Just to make sure we stop after stunt is over.
+    stop();
+    break;
+  }
+  case FETCH_STUNT_KF:
+  {
+    for (int i = 0; i < pid_array_size; i++){
+      tx_estring_value.clear();
+      tx_estring_value.append("T:");
+      tx_estring_value.append(big_timestamp_array[i]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("P:");
+      tx_estring_value.append(pos_kf.position_array[i]);
       tx_characteristic_string.writeValue(tx_estring_value.c_str());
     }
     break;

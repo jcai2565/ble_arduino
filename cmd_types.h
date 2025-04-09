@@ -18,6 +18,9 @@ enum CommandTypes {
     SEND_ANGLE_PID_CONTROL_DATA,
     START_OPEN_LOOP,
     FETCH_D1,
+    START_STUNT,
+    FETCH_STUNT_TOF,
+    FETCH_STUNT_KF,
 };
 
 #endif // CMD_TYPES_H

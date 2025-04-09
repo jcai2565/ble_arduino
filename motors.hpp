@@ -30,6 +30,7 @@ void brakeFor(int ms);
 void stop();
 void cyclePwmTest();
 
+void stuntOpenLoop();
 
 /*
  * Converts the output of compute() and calls the drive() function to go forward or backwards.
