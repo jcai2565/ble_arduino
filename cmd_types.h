@@ -21,6 +21,8 @@ enum CommandTypes {
     START_STUNT,
     FETCH_STUNT_TOF,
     FETCH_STUNT_KF,
+    START_MAPPING,
+    FETCH_MAPPING,
 };
 
 #endif // CMD_TYPES_H

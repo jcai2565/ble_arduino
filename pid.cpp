@@ -67,7 +67,11 @@ int PIDController::compute(float pos)
   Serial.print(" | ");
   Serial.print("accum:");
   Serial.print(accumulator);
+  Serial.print(" | ");
+  Serial.print("Total output: ");
+  Serial.print((int)clamp(p + i + d, MIN_PWM, MAX_PWM));
   Serial.println("");
+
   pid_control_index++;
 
   return (int)clamp(p + i + d, MIN_PWM, MAX_PWM);

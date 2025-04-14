@@ -3,6 +3,8 @@
 #include "kalman.hpp"
 #include "tof.hpp"
 #include "config.hpp"
+#include "pid.hpp"
+#include "imu.hpp"
 
 // Motor strength percentage (Must be <1)
 float left_percent = 1.0;
@@ -11,10 +13,16 @@ float right_percent = 1.0;
 // Trust that pos_kf is declared elsewhere, in .ino file
 extern KalmanFilter pos_kf;
 
+// Trust angle_pid is defined elsewhere in .ino file
+extern PIDController angle_pid;
+
 // Trust stunt things are cleared and declared elsewhere
 extern int stunt_tof_index;
 extern int stunt_kf_index;
 extern unsigned long stunt_start_time;
+
+// Trust mapping things dec.
+extern int mapping_index;
 
 void motorSetup()
 {
@@ -176,11 +184,8 @@ void stuntOpenLoop()
     d1 = getTof1IfReady();
   }
 
-  const float reverseTiming = 3000; // ms
-
-  // pre3. active brake to flip
-  // brakeFor(500); // ms
   // 3. Run the robot in reverse and drive for an open loop time (after this point data is irrelevant).
+  const float reverseTiming = 3000; // ms
   drive(BACKWARD, 255);
   delay(reverseTiming);
   stop();
@@ -189,12 +194,11 @@ void stuntOpenLoop()
 
 void executePosPid(int pwm)
 {
-
-  // Because we never get to an absolute zero.
-  if (abs(pwm) < 3)
-  {
-    stop();
-  }
+  // if (abs(pwm) < 3)
+  // {
+  //   stop();
+  return;
+  // }
 
   int input;
   if (pwm > 0)
@@ -224,14 +228,60 @@ void executePosPid(int pwm)
 
 void executeAnglePid(int pwm)
 {
+  if (abs(pwm) <= 3)
+  {
+    stop();
+    return;
+  }
+
+  // If angle > setpoint, then PWM passed in will be >0, meaning we should rotate CW to decrease our angle with +ve CCW convention
+  // Use a higher deadband for angle because on regular deadband one side turns but the other does not.
   if (pwm > 0)
   {
-    pwm += DEADBAND;
-    spin(RIGHT, (int)clamp(pwm, MIN_PWM, MAX_PWM));
+    spin(RIGHT, (int)clamp(pwm, DEADBAND * 1.5, MAX_PWM));
   }
   else // pwm < 0, so need to negate
   {
-    pwm -= DEADBAND;
-    spin(LEFT, -((int)clamp(pwm, MIN_PWM, MAX_PWM)));
+    spin(LEFT, ((int)clamp(-pwm, DEADBAND * 1.5, MAX_PWM)));
   }
+}
+
+void mappingSequence()
+{
+  // 10 deg. incr
+  for (float sp = 0.0; sp < 391.; sp += 15.)
+  {
+    unsigned long startTime = millis();
+    const int pauseTime = 750; // how long to stop at each setpoint
+    angle_pid.setSetpoint(sp);
+
+    // At each sp, we read angle and execute PID for [pauseTime] milliseconds.
+    while (millis() - startTime <= pauseTime)
+    {
+      // We do not need to decouple rates of data vs. control loop, so we can use delays until we get data.
+      float angle = getDmpYaw();
+      while (!isValidYaw(angle))
+      {
+        delay(1);
+        angle = getDmpYaw();
+      }
+
+      float d1 = getTof1IfReady();
+      if (d1 != -1.0)
+      {
+        // Store angle and distance
+        timestamp_array[mapping_index] = millis();
+        angle_pid.meas_array[mapping_index] = angle;
+        distance1_array[mapping_index] = d1;
+        mapping_index++;
+      }
+
+      // Calc. PID & run
+      int pwm = angle_pid.compute(angle);
+      executeAnglePid(pwm);
+    }
+  }
+
+  stop();
+  return;
 }

@@ -29,6 +29,7 @@ RobotCommand robot_cmd(":|");
 EString tx_estring_value;
 float tx_float_value = 0.0;
 
+//LED?
 long interval = 500;
 static long previousMillis = 0;
 unsigned long currentMillis = 0;
@@ -39,6 +40,7 @@ unsigned long testStartTime;
 int controlLoopCounter = 0;
 int measurementCounter = 0;
 
+// Lab 7
 //Kalman filter step response flag
 bool doOpenLoop = false;
 unsigned long openLoopStartTime;
@@ -51,10 +53,13 @@ int openLoopIndex = 0;
 KalmanFilter pos_kf(0.00856, 0.000258, 0.000339, 20, 31.62, 31.62);
 // KalmanFilter pos_kf(0.00856, 0.000258, 0.000339, 20, 63.24, 63.24);
 
-//Lab 8 stunts
+//Lab 8 Stunts
 int stunt_tof_index = 0;
 int stunt_kf_index = 0;
 unsigned long stunt_start_time;
+
+//Lab 9 
+int mapping_index = 0;
 
 //////////// Global Variables ////////////
 
@@ -358,6 +363,57 @@ case SET_ANGLE_GAINS:
     }
     break;
   }
+  case START_MAPPING:
+  {
+    // Read gain inputs
+    float kp_val, ki_val, kd_val;
+    bool success_kp = robot_cmd.get_next_value(kp_val);
+    bool success_ki = robot_cmd.get_next_value(ki_val);
+    bool success_kd = robot_cmd.get_next_value(kd_val);
+
+    if (success_kp && success_ki && success_kd){
+      Serial.println("START MAPPING: Angle gains set successfully");
+      angle_pid.setGains(kp_val, ki_val, kd_val);
+    }
+    else{
+      Serial.println("Failed to set angle PID gains -- START_MAPPING");
+    }
+    
+    // Reset global indices used for mapping
+    mapping_index = 0;
+
+    // Reset all of the data arrays used to store mapping (robot x, theta - will use normal timestamp_array w/ distance1 and angle_pid.meas_array)
+    angle_pid.reset();
+    angle_pid.setSetpoint(0.0); // should be 0 by default but just in case.
+    for (int i = 0; i < array_size; i++){
+      timestamp_array[i] = 0;
+      distance1_array[i] = 0.0f;
+    }
+
+    // Call function defined in motors
+    mappingSequence();
+
+    // to be sure...
+    stop();
+
+    break;
+  }
+  case FETCH_MAPPING:
+  {
+    for (int i = 0; i < array_size; i++){
+      tx_estring_value.clear();
+      tx_estring_value.append("T:");
+      tx_estring_value.append(timestamp_array[i]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("D:");
+      tx_estring_value.append(distance1_array[i]);
+      tx_estring_value.append("|");
+      tx_estring_value.append("Ang:");
+      tx_estring_value.append(angle_pid.meas_array[i]);
+      tx_characteristic_string.writeValue(tx_estring_value.c_str());
+    }
+    break;
+  }
   default:
   {
     Serial.print("Invalid Command Type: ");
@@ -433,9 +489,19 @@ void setup()
 
 void debugPrint()
 {
-  if (DO_DEBUG){
-    //print some stuff
+  // float d1 = getTof1IfReady();
+  // while (d1 == -1.0){
+  //   delay(1);
+  //   d1 = getTof1IfReady();
+  // }
+  // Serial.println(d1);
+
+  float angle = getDmpYaw();
+  while (!isValidYaw(angle)){
+    delay(1);
+    angle = getDmpYaw();
   }
+  Serial.println(angle);
 }
 
 /*

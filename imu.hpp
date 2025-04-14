@@ -41,6 +41,7 @@ float lowPassRoll(float val);
 /*
  * Reads Quat6 data from DMP and converts into Euler Angle.
  * Returns: [yaw], the yaw angle in degrees, in absolute orientation, the result of converting the Quat6 data from DMP.
+ * Note: the yaw returned wraps around -180, 180 boundary given by DMP, assuming that the DPS of robot is sufficiently slow
  * Returns: 404. , if the DMP FIFO has no data available. Use previous data point in that case or extrapolate.
  * Returns: 1000. + sensor status, if the sensor status is not OK.
  * Returns: -666.0, if myICM.status is unexpected (default return).
