@@ -143,17 +143,21 @@ float getDmpYaw()
       yaw *= 180.0 / M_PI;
 
       // Changes output from [-180, 180] to any angle by assuming continuity (the last value cannot differ by more than 360. than the current value naturally).
-      if (!lastValueInitialized){
+      if (!lastValueInitialized)
+      {
         lastValue = yaw;
         lastValueInitialized = true;
         return yaw;
-
-      } else {
-        //Assume that the 55Hz sensor isn't moving 180. degrees between measurements
-        while (yaw - lastValue >= 180.) {
+      }
+      else
+      {
+        // Assume that the 55Hz sensor isn't moving 180. degrees between measurements
+        while (yaw - lastValue >= 180.)
+        {
           yaw -= 360.;
         }
-        while (yaw - lastValue <= -180.) {
+        while (yaw - lastValue <= -180.)
+        {
           yaw += 360.;
         }
         lastValue = yaw;
@@ -174,6 +178,17 @@ float getDmpYaw()
 bool isValidYaw(float yaw)
 {
   return yaw > -99999. && yaw < 99999.;
+}
+
+float getValidDmpYaw()
+{
+  float angle = getDmpYaw();
+  while (!isValidYaw(angle))
+  {
+    delay(1);
+    angle = getDmpYaw();
+  }
+  return angle;
 }
 
 void imuSetup()

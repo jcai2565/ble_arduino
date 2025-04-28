@@ -53,6 +53,11 @@ float getDmpYaw();
  */
 bool isValidYaw(float yaw);
 
+/*
+* Combines getDmpYaw() and isValidYaw() to delay until a valid reading, and return the valid reading.
+*/
+float getValidDmpYaw();
+
 #endif
 
 #endif // IMU_HPP

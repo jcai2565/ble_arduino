@@ -43,7 +43,7 @@ void stuntOpenLoop();
  * angle_pid.do_pid is NOT set ahead of time (nor is it relevant, because the command should execute a sequence and terminate).
  * REQUIRES: the PID Gains are set ahead of time, in a bluetooth function call.
  */
-void mappingSequence();
+void mappingSequence(float incr, float error, int num_readings);
 
 /*
  * Converts the output of compute() and calls the drive() function to go forward or backwards.

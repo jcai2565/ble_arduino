@@ -75,6 +75,13 @@ public:
   float linearExtrapolate();
 
   /*
+   * Resets accumulator. 
+   * To be used in Lab 11 during setpoint changes to prevent excessive accumulator error,
+   * ... since we run the PID compute continuously but do not execute motion if we are within error bounds.
+   */
+  void resetAccumulator();
+
+  /*
    * Resets all PID-related parameters and prepares for a fresh PID cycle.
    * The flag PIDController::do_pid should still be set by the BLE command.
    */

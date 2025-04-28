@@ -378,7 +378,19 @@ case SET_ANGLE_GAINS:
     else{
       Serial.println("Failed to set angle PID gains -- START_MAPPING");
     }
-    
+
+    // Read mapping settings
+    float incr, error;
+    int num_readings;
+    bool success_incr = robot_cmd.get_next_value(incr);
+    bool success_error = robot_cmd.get_next_value(error);
+    bool success_num_readings = robot_cmd.get_next_value(num_readings);
+
+    if (!(success_incr && success_error && success_num_readings)){
+      Serial.println("Failed to receive mapping settings... Exiting command START_MAPPING.");
+      break;
+    }
+
     // Reset global indices used for mapping
     mapping_index = 0;
 
@@ -391,7 +403,19 @@ case SET_ANGLE_GAINS:
     }
 
     // Call function defined in motors
-    mappingSequence();
+    mappingSequence(incr, error, num_readings);
+
+    if (DO_DEBUG){
+      Serial.println("Finished mapping sequence!");
+    }
+    // Send a signal signifying completion of task
+    tx_estring_value.clear();
+    tx_estring_value.append("done");
+    tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+    if (DO_DEBUG){
+      Serial.println("Sent done...");
+    }
 
     // to be sure...
     stop();
@@ -400,7 +424,16 @@ case SET_ANGLE_GAINS:
   }
   case FETCH_MAPPING:
   {
+    if (DO_DEBUG){
+      Serial.println("Fetch mapping started");
+    }
     for (int i = 0; i < array_size; i++){
+      if (DO_DEBUG){
+        Serial.print("Progress: ");
+        Serial.print(i);
+        Serial.print("/");
+        Serial.println(array_size);
+      }
       tx_estring_value.clear();
       tx_estring_value.append("T:");
       tx_estring_value.append(timestamp_array[i]);
@@ -676,7 +709,7 @@ void loop()
   posPidControlLoop();
   anglePidControlLoop();
   
-  debugPrint();
+  // debugPrint();
 
   // If a central is connected to the peripheral
   if (central)
@@ -699,7 +732,7 @@ void loop()
       posPidControlLoop();
       anglePidControlLoop();
 
-      debugPrint();
+      // debugPrint();
     }
 
     // Exiting: stop motors

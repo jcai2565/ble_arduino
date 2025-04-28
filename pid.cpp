@@ -15,6 +15,7 @@ int PIDController::compute(float pos)
   if (pid_prev_time != 0)
   {
     pid_dt = (cur_time - pid_prev_time) / 1000.0; // sec
+    pid_dt = constrain(pid_dt, 0, 0.02); //clamp pid_dt
   }
   pid_prev_time = cur_time;
 
@@ -49,28 +50,35 @@ int PIDController::compute(float pos)
   p_array[pid_control_index] = p;
   i_array[pid_control_index] = i;
   d_array[pid_control_index] = d;
-  Serial.print("PID Control--- Pos: ");
-  Serial.print(pos);
-  Serial.print(" | Error: ");
-  Serial.print(error);
-  Serial.print(" | P: ");
-  Serial.print(p);
-  Serial.print(" | ");
-  Serial.print("I: ");
-  Serial.print(i);
-  Serial.print(" | ");
-  Serial.print("D: ");
-  Serial.print(d);
-  Serial.print(" | ");
-  Serial.print("dt:");
-  Serial.print(pid_dt);
-  Serial.print(" | ");
-  Serial.print("accum:");
-  Serial.print(accumulator);
-  Serial.print(" | ");
-  Serial.print("Total output: ");
-  Serial.print((int)clamp(p + i + d, MIN_PWM, MAX_PWM));
-  Serial.println("");
+
+  if (DO_DEBUG)
+  {
+    Serial.print("PID Control--- Pos: ");
+    Serial.print(pos);
+    Serial.print(" | Error: ");
+    Serial.print(error);
+    Serial.print(" | P: ");
+    Serial.print(p);
+    Serial.print(" | ");
+    Serial.print("I: ");
+    Serial.print(i);
+    Serial.print(" | ");
+    Serial.print("D: ");
+    Serial.print(d);
+    Serial.print(" | ");
+    Serial.print("dt:");
+    Serial.print(pid_dt);
+    Serial.print(" | ");
+    Serial.print("accum:");
+    Serial.print(accumulator);
+    Serial.print(" | ");
+    Serial.print("Prev value:");
+    Serial.print(prev_val);
+    Serial.print(" | ");
+    Serial.print("Total output: ");
+    Serial.print((int)clamp(p + i + d, MIN_PWM, MAX_PWM));
+    Serial.println("");
+  }
 
   pid_control_index++;
 
@@ -91,7 +99,7 @@ void PIDController::setSetpoint(float sp)
   setpoint = sp;
 }
 
-// Linear extrapolation based on meas_array and time_array
+// Linear extrapolation based on meas_array and time_array, used in pre-lab 7
 float PIDController::linearExtrapolate()
 {
   // No extrapolation if one data point -- just use that data point
@@ -113,6 +121,11 @@ float PIDController::linearExtrapolate()
     // Serial.println(meas_array[pid_index - 1] + slope * local_dt);
     return meas_array[pid_index - 1] + slope * local_dt;
   }
+}
+
+void PIDController::resetAccumulator()
+{
+  accumulator = 0.0;
 }
 
 void PIDController::reset()
@@ -142,15 +155,3 @@ void PIDController::reset()
 
   pid_start_time = millis();
 }
-
-// Serial.print("position: ");
-// Serial.print(pos);
-// Serial.print(" | ");
-// Serial.print("p term:");
-// Serial.print(p);
-// Serial.print("| ");
-// Serial.print("i term");
-// Serial.print(i);
-// Serial.print("| ");
-// Serial.print("d term");
-// Serial.println(d);

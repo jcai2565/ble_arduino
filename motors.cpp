@@ -5,6 +5,7 @@
 #include "config.hpp"
 #include "pid.hpp"
 #include "imu.hpp"
+#include <ArduinoBLE.h>
 
 // Motor strength percentage (Must be <1)
 float left_percent = 1.0;
@@ -228,57 +229,84 @@ void executePosPid(int pwm)
 
 void executeAnglePid(int pwm)
 {
-  if (abs(pwm) <= 3)
+  if (abs(pwm) < 3)
   {
     stop();
     return;
   }
-
   // If angle > setpoint, then PWM passed in will be >0, meaning we should rotate CW to decrease our angle with +ve CCW convention
   // Use a higher deadband for angle because on regular deadband one side turns but the other does not.
   if (pwm > 0)
   {
-    spin(RIGHT, (int)clamp(pwm, DEADBAND * 1.5, MAX_PWM));
+    spin(RIGHT, (int)clamp(pwm + DEADBAND, 0., MAX_PWM));
   }
   else // pwm < 0, so need to negate
   {
-    spin(LEFT, ((int)clamp(-pwm, DEADBAND * 1.5, MAX_PWM)));
+    spin(LEFT, ((int)clamp(-pwm + DEADBAND, 0., MAX_PWM)));
   }
 }
 
-void mappingSequence()
+void mappingSequence(float incr, float error, int num_readings)
 {
-  // 10 deg. incr
-  for (float sp = 0.0; sp < 391.; sp += 15.)
+  // Note that BLE.poll() is added to keep BLE connection alive during long sequence
+  //
+  // Increment setpoint from 0 to 360 by [incr]
+  for (float sp = 0.0; sp < 360.; sp += incr)
   {
-    unsigned long startTime = millis();
-    const int pauseTime = 750; // how long to stop at each setpoint
+    if (DO_DEBUG)
+    {
+      Serial.print("Setpoint set:");
+      Serial.println(sp);
+    }
+
     angle_pid.setSetpoint(sp);
 
-    // At each sp, we read angle and execute PID for [pauseTime] milliseconds.
-    while (millis() - startTime <= pauseTime)
+    // Get to within +-[error] of the setpoint
+    float angle = getValidDmpYaw();
+
+    if (DO_DEBUG)
     {
-      // We do not need to decouple rates of data vs. control loop, so we can use delays until we get data.
-      float angle = getDmpYaw();
-      while (!isValidYaw(angle))
-      {
-        delay(1);
-        angle = getDmpYaw();
-      }
+      Serial.print("Current angle is: ");
+      Serial.print(angle);
+      Serial.print(" | ");
+      Serial.print("Current error is: ");
+      Serial.println(abs(angle - sp));
+    }
 
-      float d1 = getTof1IfReady();
-      if (d1 != -1.0)
-      {
-        // Store angle and distance
-        timestamp_array[mapping_index] = millis();
-        angle_pid.meas_array[mapping_index] = angle;
-        distance1_array[mapping_index] = d1;
-        mapping_index++;
-      }
-
-      // Calc. PID & run
+    while (abs(angle - sp) >= error)
+    {
+      angle = getValidDmpYaw();
       int pwm = angle_pid.compute(angle);
       executeAnglePid(pwm);
+      BLE.poll();
+    }
+
+    // Once we've reached error bounds
+    stop();
+    angle_pid.resetAccumulator(); // prevent integral windup
+
+    // Take readings from TOF, storing pairwise datapoints.
+    int i = 0;
+    while (i < num_readings)
+    {
+      float d1 = getTof1IfReady();
+      if (d1 == -1.0)
+      {
+        BLE.poll();
+        continue; // Spins until TOF ready
+      }
+
+      // Since DMP is faster we can reasonably assume no massive delays once TOF ready
+      float angle = getValidDmpYaw();
+
+      // Store angle and distance once we have valid d1 and angle
+      timestamp_array[mapping_index] = millis();
+      angle_pid.meas_array[mapping_index] = angle;
+      distance1_array[mapping_index] = d1;
+      mapping_index++;
+      BLE.poll();
+
+      i++;
     }
   }
 
