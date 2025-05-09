@@ -148,7 +148,7 @@ void motorOpenLoop()
  */
 void stuntOpenLoop()
 {
-  const float flipDistance = 1200; // mm
+  const float flipDistance = 900; // mm
   const float maxRunTime = 10000;  // ms
 
   // 1. Start by driving forward against the wall by default.
