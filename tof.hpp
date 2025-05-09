@@ -15,11 +15,17 @@ extern float distance1_array[array_size];
 extern float distance2_array[array_size];
 
 /*
-* Returns: a float, the distance (in mm) recorded by TOF1 if the data is ready,
-* Returns: -1.0 if the data is not ready.
-*/
+ * Returns: a float, the distance (in mm) recorded by TOF1 if the data is ready,
+ * Returns: -1.0 if the data is not ready.
+ */
 float getTof1IfReady();
 float getTof2IfReady();
+
+/*
+ * Calls getTof1IfReady() repeatedly with delays until a valid value is returned.
+ */
+float getTof1WithDelay();
+float getTof2WithDelay();
 
 void tofSetup();
 

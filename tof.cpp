@@ -12,37 +12,59 @@ float getTof1IfReady()
   int d1;
   if (distanceSensor1.checkForDataReady())
   {
-    d1 = distanceSensor1.getDistance(); 
+    d1 = distanceSensor1.getDistance();
     distanceSensor1.clearInterrupt();
     distanceSensor1.stopRanging();
     distanceSensor1.startRanging();
   }
-  else 
+  else
   {
     d1 = -1.0;
   }
-  return d1;
+  return (float)d1;
 }
 
-
 float getTof2IfReady()
-{ 
+{
   int d2;
   if (distanceSensor2.checkForDataReady())
   {
-    d2 = distanceSensor2.getDistance(); 
+    d2 = distanceSensor2.getDistance();
     distanceSensor2.clearInterrupt();
     distanceSensor2.stopRanging();
     distanceSensor2.startRanging();
   }
-  else 
+  else
   {
     d2 = -1.0;
+  }
+  return (float)d2;
+}
+
+float getTof1WithDelay()
+{
+  float d1 = getTof1IfReady();
+  while (d1 == -1.0)
+  {
+    delay(1);
+    d1 = getTof1IfReady();
+  }
+  return d1;
+}
+
+float getTof2WithDelay()
+{
+  float d2 = getTof1IfReady();
+  while (d2 == -1.0)
+  {
+    delay(1);
+    d2 = getTof1IfReady();
   }
   return d2;
 }
 
-void tofSetup(){
+void tofSetup()
+{
   // TOF setup
   pinMode(XSHUT, OUTPUT); // write, to control XSHUT
   distanceSensor1.init();
@@ -72,7 +94,8 @@ void tofSetup(){
   if (status1 != 0)
   {
     Serial.println("Distance sensor 1 failed to begin. Please check wiring. Freezing...");
-    while (1);
+    while (1)
+      ;
   }
 
   int status2 = distanceSensor2.begin();
