@@ -54,11 +54,11 @@ float getTof1WithDelay()
 
 float getTof2WithDelay()
 {
-  float d2 = getTof1IfReady();
+  float d2 = getTof2IfReady();
   while (d2 == -1.0)
   {
     delay(1);
-    d2 = getTof1IfReady();
+    d2 = getTof2IfReady();
   }
   return d2;
 }
