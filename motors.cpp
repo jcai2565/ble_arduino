@@ -251,7 +251,7 @@ void mappingSequence(float incr, float error, int num_readings)
   // Note that BLE.poll() is added to keep BLE connection alive during long sequence
   //
   // Increment setpoint from 0 to 360 by [incr]
-  for (float sp = 0.0; sp < 360.; sp += incr)
+  for (float sp = 0.0; sp < 361.; sp += incr)
   {
     if (DO_DEBUG)
     {
