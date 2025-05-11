@@ -13,7 +13,6 @@
 #define alpha_complementary 0.1
 
 // Motor pwm variables
-#define DEADBAND 80
 #define MAX_PWM 255.0
 #define MIN_PWM -255.0
 
@@ -23,6 +22,7 @@
 #define DO_DEBUG true
 
 // Defined in config cpp
+extern int DEADBAND;
 extern int timestamp_array[array_size];
 extern int big_timestamp_array[pid_array_size];
 

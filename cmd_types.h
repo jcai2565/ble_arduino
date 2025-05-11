@@ -1,7 +1,8 @@
 #ifndef CMD_TYPES_H
 #define CMD_TYPES_H
 
-enum CommandTypes {
+enum CommandTypes
+{
     SET_POS_GAINS,
     SET_POS_SETPOINT,
     START_POS_PID,
@@ -23,6 +24,10 @@ enum CommandTypes {
     FETCH_STUNT_KF,
     START_MAPPING,
     FETCH_MAPPING,
+    DRIVE_FORWARD_SPEED_TEST,
+    EXECUTE_WAYPOINTS,
+    SET_DEADBAND,
+    SET_MOTOR_SPEED,
 };
 
 #endif // CMD_TYPES_H

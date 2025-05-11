@@ -447,6 +447,62 @@ case SET_ANGLE_GAINS:
     }
     break;
   }
+  case DRIVE_FORWARD_SPEED_TEST:
+  {
+    // Brakes for 100 ms after..
+    driveForwardFor1Second();
+    break;
+  }
+  case EXECUTE_WAYPOINTS:
+  {
+    // Read gain inputs
+    float kp_val, ki_val, kd_val;
+    bool success_kp = robot_cmd.get_next_value(kp_val);
+    bool success_ki = robot_cmd.get_next_value(ki_val);
+    bool success_kd = robot_cmd.get_next_value(kd_val);
+
+    if (success_kp && success_ki && success_kd){
+      Serial.println("START MAPPING: Angle gains set successfully");
+      angle_pid.setGains(kp_val, ki_val, kd_val);
+    }
+    else{
+      Serial.println("Failed to set angle PID gains -- START_MAPPING");
+    }
+
+    angle_pid.reset();
+    executeWaypointSequence();
+    break;
+  }
+  case SET_DEADBAND:
+  {
+    float db_val;
+    bool success_db = robot_cmd.get_next_value(db_val);
+
+    if (success_db){
+      Serial.println("SET_DEADBAND: Deadband set successfully");
+      DEADBAND = db_val;
+    }
+    else{
+      Serial.println("Failed to set deadband -- SET_DEADBAND");
+    }
+
+    break;
+  }
+  case SET_MOTOR_SPEED:
+  {
+    float ms_val;
+    bool success_ms = robot_cmd.get_next_value(ms_val);
+
+    if (success_ms){
+      Serial.println("SET MOTOR SPEED: Speed set successfully");
+      setMotorSpeed(ms_val);
+    }
+    else{
+      Serial.println("Failed to set motor speed -- SET MOTOR SPEED");
+    }
+
+    break;
+  }
   default:
   {
     Serial.print("Invalid Command Type: ");
