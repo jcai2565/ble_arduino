@@ -57,4 +57,33 @@ void executePosPid(int pwm);
  */
 void executeAnglePid(int pwm);
 
+/**
+ * Used to test the speed of motor.
+ */
+void driveForwardFor1Second();
+
+/**
+ * Sets the motor speed to adjust timings in Lab 12. Used in conjuction with driveForwardFor1Second()
+ */
+void setMotorSpeed(float spd);
+
+/**
+ * Used in Lab 12 to drive OL forward.
+ * Input: [dist], in feet.
+ * Drives forward for dist if [shouldCheckTof] is false.
+ * Else, checks TOF reading every ~125 ms and returns early if TOF reading < 1 foot.
+ */
+void driveForwardDistance(float dist, bool shouldCheckTof);
+
+/**
+ * Uses PID to turn by [angle].
+ * Counterclockwise is positive. Requires that PID gains for angle are set.
+ * Input: [angle], in degrees, to turn by.
+ */
+void rotateByAngleWithPid(float angle);
+
+void executeWaypointSequence();
+
+extern float motorSpeed;
+
 #endif

@@ -6,6 +6,7 @@
 #include "pid.hpp"
 #include "imu.hpp"
 #include <ArduinoBLE.h>
+#include "planner.hpp"
 
 // Motor strength percentage (Must be <1)
 float left_percent = 1.0;
@@ -149,7 +150,7 @@ void motorOpenLoop()
 void stuntOpenLoop()
 {
   const float flipDistance = 900; // mm
-  const float maxRunTime = 10000;  // ms
+  const float maxRunTime = 10000; // ms
 
   // 1. Start by driving forward against the wall by default.
   drive(FORWARD, 255);
@@ -312,4 +313,117 @@ void mappingSequence(float incr, float error, int num_readings)
 
   stop();
   return;
+}
+
+// ------------------------ Functions to Use In Lab 12 Open Loop//
+float motorSpeed = 2; // ft/sec
+
+void setMotorSpeed(float spd)
+{
+  motorSpeed = spd;
+}
+
+void driveForwardFor1Second()
+{
+  drive(FORWARD, 150);
+  delay(1000);
+  brakeFor(500);
+  stop();
+}
+
+// Returns true if TOF reading is valid and less than [dist] in mm.
+bool isTofUnder(float dist)
+{
+  float d1 = getTof1IfReady();
+  if (d1 != -1.0 && d1 < dist)
+  {
+    return true;
+  }
+  return false;
+}
+
+// Let sd = stoppingDistances[waypointIndex] != 0; 
+// If sd != 0, the TOF is checked to see if its reading < sd + some buffer distance, and stops if so.
+void driveForwardDistance(float dist, int waypointIndex)
+{
+  const float timeStep = 0.01;
+  const int stepDelay = int(timeStep * 1000);
+  float totalTime = dist / motorSpeed;
+
+  drive(FORWARD, 150);
+  unsigned long start = millis();
+
+  float stopDistanceFeet = stoppingDistances[waypointIndex];
+  bool shouldCheckTof = (stopDistanceFeet > 0.0);
+
+  while ((millis() - start) < (int)(totalTime * 1000))
+  {
+    delay(stepDelay);
+
+    if (shouldCheckTof)
+    {
+      // Include motor stopping distance (example: +1.5 feet extra)
+      float bufferFeet = (stopDistanceFeet >= 2.0) ? 1.5 : 0.25;
+      float stopThresholdMM = (stopDistanceFeet + bufferFeet) * 304.8;
+
+      if (isTofUnder(stopThresholdMM))
+      {
+        Serial.print(stopDistanceFeet);
+        Serial.println(" ft: TOF stop triggered early.");
+        break;
+      }
+    }
+
+    BLE.poll();
+  }
+
+  brakeFor(1000);
+  stop();
+}
+
+void rotateByAngleWithPid(float angle)
+{
+  // timeout for PID at each step. We assume that each turn will not exceed this time.
+  const int timeout = 2000;
+
+  unsigned long startTime = millis();
+
+  float heading = getValidDmpYaw();
+  angle_pid.setSetpoint(heading + angle);
+
+  while (millis() - startTime < timeout)
+  {
+
+    heading = getValidDmpYaw();
+    int pwm = angle_pid.compute(heading);
+    executeAnglePid(pwm);
+  }
+  stop();
+  angle_pid.resetAccumulator();
+}
+
+void executeWaypointSequence()
+{
+  Pose currentPose;
+
+  // Start position: (x, y, theta=0) facing right
+  currentPose.x = waypoints[0].x;
+  currentPose.y = waypoints[0].y;
+
+  for (int i = 1; i < numWaypoints; ++i)
+  {
+    BLE.poll();
+    currentPose.theta = getValidDmpYaw(); // degrees
+
+    float angleToRotate = planner.calculateHeadingToWaypoint(currentPose, i);
+    rotateByAngleWithPid(angleToRotate);
+
+    float distanceToTravel = planner.calculateDistanceToWaypoint(currentPose, i);
+
+    // Only check TOF early-stop at waypoint index 4 and 6
+    driveForwardDistance(distanceToTravel, i);
+
+    currentPose.x = waypoints[i].x;
+    currentPose.y = waypoints[i].y;
+  }
 }

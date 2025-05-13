@@ -33,5 +33,6 @@ private:
 extern Planner planner;
 extern const std::vector<Waypoint> waypoints;
 extern const int numWaypoints;
+extern float stoppingDistances[];
 
 #endif // PLANNER_HPP

@@ -14,6 +14,18 @@ const std::vector<Waypoint> waypoints = {
 };
 const int numWaypoints = 9;
 
+// Corresponds to the number of waypoints
+float stoppingDistances[] = {
+    0.0, // waypoint 0
+    0.0, // waypoint 1
+    0.0, // waypoint 2
+    0.0, // waypoint 3
+    1.0, // waypoint 4 --> early stop at 1 foot
+    0.0, // waypoint 5
+    2.0, // waypoint 6 --> early stop at 1 foot
+    3.0, // waypoint 7 --> early stop at 2 feet
+    0.0  // waypoint 8
+};
 
 // Define the global Planner using the waypoints
 Planner planner(waypoints);
