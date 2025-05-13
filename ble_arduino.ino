@@ -9,7 +9,6 @@
 #include "ble.h"
 #include "motors.hpp"
 #include "utils.hpp"
-#include "led.hpp"
 #include "pid.hpp"
 #include "imu.hpp"
 #include "config.hpp"
@@ -543,7 +542,6 @@ void setup()
 {
   Wire.begin();
   Serial.begin(115200);
-  ledSetup();
   motorSetup();
   tofSetup();
   imuSetup();
@@ -585,12 +583,21 @@ void debugPrint()
   // }
   // Serial.println(d1);
 
-  float angle = getDmpYaw();
-  while (!isValidYaw(angle)){
-    delay(1);
-    angle = getDmpYaw();
-  }
-  Serial.println(angle);
+  // float angle = getDmpYaw();
+  // while (!isValidYaw(angle)){
+  //   delay(1);
+  //   angle = getDmpYaw();
+  // }
+  // Serial.println(angle);
+
+  //  float d1 = getTof1WithDelay();
+  // float d2 = getTof2WithDelay();
+
+  // Serial.print("TOF1: ");
+  // Serial.print(d1);
+  // Serial.print(" | ");
+  // Serial.print("TOF2: ");
+  // Serial.println(d2);
 }
 
 /*
@@ -757,13 +764,14 @@ void anglePidControlLoop()
 
 void loop()
 {
-  ledCheckAndSet(); // LED blink loop component
-  
+
   // Listen for connections
   BLEDevice central = BLE.central();
   // handleOpenLoop();
   posPidControlLoop();
   anglePidControlLoop();
+ 
+
   
   // debugPrint();
 
@@ -776,7 +784,6 @@ void loop()
     // While central is connected
     while (central.connected())
     {
-      ledCheckAndSet(); // LED blink loop component
 
       // Send data
       write_data();
