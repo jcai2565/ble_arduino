@@ -4,7 +4,7 @@
 
 // Initialize two PID controllers
 // (float sp = 0.0, float kp = 0.0, float ki = 0.0, float kd = 0.0, float dt = 0.02, float alpha = 0.1)
-PIDController angle_pid(0.0, 0.0, 0.0, 0.0, 0.02, 0.01); // Default values, to be adjusted
+PIDController angle_pid(0.0, 0.0, 0.0, 0.0, 0.02, 1);    // Default values, to be adjusted
 PIDController pos_pid(304.0, 0.0, 0.0, 0.0, 0.02, 0.05); // Setpoint of 304mm
 
 int PIDController::compute(float pos)
@@ -15,7 +15,7 @@ int PIDController::compute(float pos)
   if (pid_prev_time != 0)
   {
     pid_dt = (cur_time - pid_prev_time) / 1000.0; // sec
-    pid_dt = constrain(pid_dt, 0, 0.02); //clamp pid_dt
+    pid_dt = constrain(pid_dt, 0, 0.02);          // clamp pid_dt
   }
   pid_prev_time = cur_time;
 
@@ -54,6 +54,8 @@ int PIDController::compute(float pos)
   if (DO_DEBUG)
   {
     Serial.print("PID Control--- Pos: ");
+    Serial.print(pos);
+    Serial.print("| Setpt: ");
     Serial.print(pos);
     Serial.print(" | Error: ");
     Serial.print(error);
