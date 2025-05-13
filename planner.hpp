@@ -8,7 +8,7 @@ struct Pose
 {
   double x;
   double y;
-  double theta; // In radians
+  double theta; // In degrees
 };
 
 struct Waypoint
@@ -31,6 +31,7 @@ private:
 
 // Extern declarations
 extern Planner planner;
-extern std::vector<Waypoint> waypoints;
+extern const std::vector<Waypoint> waypoints;
+extern const int numWaypoints;
 
 #endif // PLANNER_HPP

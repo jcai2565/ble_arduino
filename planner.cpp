@@ -1,7 +1,7 @@
 #include "Planner.hpp"
 
 // Define the global waypoints list
-std::vector<Waypoint> waypoints = {
+const std::vector<Waypoint> waypoints = {
     {-4.0, -3.0}, // Start
     {-2.0, -1.0},
     {1.0, -1.0},
@@ -12,6 +12,8 @@ std::vector<Waypoint> waypoints = {
     {0.0, 3.0},
     {0.0, 0.0} // End
 };
+const int numWaypoints = 9;
+
 
 // Define the global Planner using the waypoints
 Planner planner(waypoints);
@@ -27,13 +29,13 @@ double Planner::calculateHeadingToWaypoint(const Pose &currentPose, int waypoint
   const Waypoint &wp = waypoints_[waypointIndex];
   double dx = wp.x - currentPose.x;
   double dy = wp.y - currentPose.y;
-  double targetAngle = std::atan2(dy, dx);
+  double targetAngle = std::atan2(dy, dx) * 180.0 / M_PI; // radians to degrees
 
   double deltaTheta = targetAngle - currentPose.theta;
-  while (deltaTheta > M_PI)
-    deltaTheta -= 2 * M_PI;
-  while (deltaTheta < -M_PI)
-    deltaTheta += 2 * M_PI;
+  while (deltaTheta > 180.0)
+    deltaTheta -= 360.0;
+  while (deltaTheta < -180.0)
+    deltaTheta += 360.0;
 
   return deltaTheta;
 }
